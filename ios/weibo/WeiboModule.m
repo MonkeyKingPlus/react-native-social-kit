@@ -202,15 +202,47 @@ RCT_EXPORT_METHOD(share: (NSDictionary *)config : (RCTResponseSenderBlock)callba
       [result setValue:accessToken forKey:@"accessToken"];
       [result setValue:refreshToken forKey:@"refreshToken"];
       [result setValue:[NSNumber numberWithInteger:expiresInSeconds] forKey:@"expiresInSeconds"];
+    
+      [self getUserInfo:result];
     }
-    authCallback(@[result]);
-    authCallback = nil;
+    else{
+        authCallback(@[result]);
+        authCallback = nil;
+    }
+      
+
   } else if ([response isKindOfClass:WBSendMessageToWeiboResponse.class]) {
     shareCallback(@[result]);
     shareCallback = nil;
   }
 }
 
+
+- (void)getUserInfo:(NSDictionary*)result{
+    
+    __block NSDictionary* params = result;
+    NSDictionary *p = [NSDictionary dictionaryWithObjectsAndKeys:[params objectForKey:@"accessToken"],@"access_token",[params objectForKey:@"uid"],@"uid", nil];
+    [WBHttpRequest requestWithURL:@"https://api.weibo.com/2/users/show.json"
+                       httpMethod:@"GET"
+                           params:p
+                            queue:nil
+            withCompletionHandler:^(WBHttpRequest *httpRequest, id result, NSError *error) {
+                
+                if (!error && result) {
+                    
+                    NSMutableDictionary *dic = [NSMutableDictionary dictionaryWithDictionary:params];
+                    [dic setObject:result forKey:@"userInfo"];
+                    authCallback(@[dic]);
+                    authCallback = nil;
+                    
+                }
+                else{
+                    authCallback(@[params]);
+                    authCallback = nil;
+                }
+            }];
+    
+}
 + (BOOL)handleOpenURL:(NSURL *)url {
   NSLog(@"URL :%@ ", url);
   
