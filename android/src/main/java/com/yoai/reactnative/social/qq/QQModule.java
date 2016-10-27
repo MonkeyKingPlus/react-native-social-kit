@@ -21,111 +21,111 @@ import com.yoai.reactnative.social.Utils;
 import org.json.JSONObject;
 
 public class QQModule extends ReactContextBaseJavaModule implements ActivityEventListener {
-
-  private static final String TAG = "QQModule";
-
-  private IUiListener listener;
-
-  @Override
-  public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
-    if (this.listener != null) {
-      if (requestCode == Constants.REQUEST_LOGIN) {
-        Tencent.handleResultData(data, this.listener);
-        this.listener = null;
-      }
-    }
-  }
-
-  @Override
-  public void onNewIntent(Intent intent) {
-
-  }
-
-  public QQModule(ReactApplicationContext reactContext) {
-    super(reactContext);
-
-    // Do we need to remove the listener later?
-    reactContext.addActivityEventListener(this);
-
-  }
-
-  @Override
-  public String getName() {
-    return "QQ";
-  }
-
-  @ReactMethod
-  public void authorize(final ReadableMap config, final Callback result) {
-    info("authorize...");
-
-    if (config == null) {
-      Log.e(TAG, "authorize...missing config");
-      return;
-    }
-
-    if (!config.hasKey("appId")) {
-      Log.e(TAG, "authorize...missing appId");
-      return;
-    }
-    String appId = config.getString("appId");
-
-    String scope = "";
-    if (!config.hasKey("scope")) {
-      Log.i(TAG, "authorize...using empty scope");
-    } else {
-      scope = config.getString("scope");
-    }
-
-    final WritableMap data = new WritableNativeMap();
-
-    this.listener = new IUiListener() {
-      @Override
-      public void onComplete(Object o) {
-        if (o instanceof JSONObject) {
-          JSONObject jsonObject = (JSONObject) o;
-          String openId = jsonObject.optString("openid", null);
-          String accessToken = jsonObject.optString("access_token", null);
-          int expiresInSeconds = jsonObject.optInt("expires_in", 0);
-          if (openId != null) {
-            data.putString("openId", openId);
-          }
-          if (accessToken != null) {
-            data.putString("accessToken", accessToken);
-          }
-          if (expiresInSeconds > 0) {
-            data.putInt("expiresInSeconds", expiresInSeconds);
-          }
+    
+    private static final String TAG = "QQModule";
+    private Tencent tencent;
+    private IUiListener listener;
+    
+    @Override
+    public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
+        if (this.listener != null) {
+            if (requestCode == Constants.REQUEST_LOGIN) {
+                Tencent.handleResultData(data, this.listener);
+                this.listener = null;
+            }
         }
-        result.invoke(data);
-      }
-
-      @Override
-      public void onError(UiError uiError) {
-        Log.e(TAG, "onError..." + uiError.errorMessage + " " + uiError.errorDetail + " " + uiError.errorCode);
-        String error = "errorCode=" + uiError.errorCode;
-        if (uiError.errorMessage != null) {
-          error += ", message=" + uiError.errorMessage;
+    }
+    
+    @Override
+    public void onNewIntent(Intent intent) {
+        
+    }
+    
+    public QQModule(ReactApplicationContext reactContext) {
+        super(reactContext);
+        
+        // Do we need to remove the listener later?
+        reactContext.addActivityEventListener(this);
+        
+    }
+    
+    @Override
+    public String getName() {
+        return "QQ";
+    }
+    
+    
+    @ReactMethod
+    public void registerApp(final String appId, final Callback callback) {
+        this.tencent = Tencent.createInstance(appId, getReactApplicationContext().getApplicationContext());
+        if (callback != null) {
+            callback.invoke();
         }
-        if (uiError.errorDetail != null) {
-          error += ", detail=" + uiError.errorDetail;
+        
+    }
+    
+    @ReactMethod
+    public void authorize(final ReadableMap config, final Callback result) {
+        info("authorize...");
+        
+        String scope = "all";
+        if (config != null && config.hasKey("appId")) {
+            scope = config.getString("scope");
         }
-        data.putString("error", error);
-        result.invoke(data);
-      }
-
-      @Override
-      public void onCancel() {
-        Log.d(TAG, "onCancel...");
-        data.putBoolean("cancel", true);
-        result.invoke(data);
-      }
-    };
-    Tencent tencent = Tencent.createInstance(appId, getReactApplicationContext().getApplicationContext());
-    tencent.login(getCurrentActivity(), scope, this.listener);
-  }
-
-
-  private void info(String msg) {
-    Utils.info(TAG, msg);
-  }
+        
+        final WritableMap data = new WritableNativeMap();
+        
+        this.listener = new IUiListener() {
+            @Override
+            public void onComplete(Object o) {
+                if (o instanceof JSONObject) {
+                    JSONObject jsonObject = (JSONObject) o;
+                    String openId = jsonObject.optString("openid", null);
+                    String accessToken = jsonObject.optString("access_token", null);
+                    int expiresInSeconds = jsonObject.optInt("expires_in", 0);
+                    
+                    
+                    System.out.print("授权成功:"+ data);
+                    
+                    if (openId != null) {
+                        data.putString("openId", openId);
+                    }
+                    if (accessToken != null) {
+                        data.putString("accessToken", accessToken);
+                    }
+                    if (expiresInSeconds > 0) {
+                        data.putInt("expiresInSeconds", expiresInSeconds);
+                    }
+                }
+                result.invoke(data);
+            }
+            
+            @Override
+            public void onError(UiError uiError) {
+                Log.e(TAG, "onError..." + uiError.errorMessage + " " + uiError.errorDetail + " " + uiError.errorCode);
+                String error = "errorCode=" + uiError.errorCode;
+                if (uiError.errorMessage != null) {
+                    error += ", message=" + uiError.errorMessage;
+                }
+                if (uiError.errorDetail != null) {
+                    error += ", detail=" + uiError.errorDetail;
+                }
+                data.putString("error", error);
+                result.invoke(data);
+            }
+            
+            @Override
+            public void onCancel() {
+                Log.d(TAG, "onCancel...");
+                data.putBoolean("cancel", true);
+                result.invoke(data);
+            }
+        };
+        this.tencent.login(getCurrentActivity(), scope, this.listener);
+    }
+    
+    
+    private void info(String msg) {
+        Utils.info(TAG, msg);
+    }
 }

@@ -203,13 +203,13 @@ RCT_EXPORT_METHOD(share: (NSDictionary *)config : (RCTResponseSenderBlock)callba
       [result setValue:refreshToken forKey:@"refreshToken"];
       [result setValue:[NSNumber numberWithInteger:expiresInSeconds] forKey:@"expiresInSeconds"];
     
-      [self getUserInfo:result];
+//      [self getUserInfo:result];
+//    }
+//    else{
+
     }
-    else{
-        authCallback(@[result]);
-        authCallback = nil;
-    }
-      
+      authCallback(@[result]);
+      authCallback = nil;
 
   } else if ([response isKindOfClass:WBSendMessageToWeiboResponse.class]) {
     shareCallback(@[result]);
